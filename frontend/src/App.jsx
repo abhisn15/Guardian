@@ -7,6 +7,8 @@ import { useWallet } from "./useWallet";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
 import HowItWorks from "./components/HowItWorks";
+import Arena from "./components/Arena";
+import seedAttempts from "./seed-attempts.json";
 import AgentRoster from "./components/AgentRoster";
 import ReasoningTrace from "./components/ReasoningTrace";
 import ActivityFeed from "./components/ActivityFeed";
@@ -28,6 +30,12 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [apiUp, setApiUp] = useState(null);
   const [notice, setNotice] = useState(null);
+
+  // Seeded so the board is never empty — a demo that opens on "no attempts yet"
+  // fails visibly if the room is slow to scan.
+  const [attempts, setAttempts] = useState(seedAttempts);
+  const [attackBusy, setAttackBusy] = useState(false);
+  const [attackError, setAttackError] = useState(null);
 
   const seen = useRef(new Set());
   const cursor = useRef(null);
@@ -199,6 +207,62 @@ export default function App() {
     }
   };
 
+  const launchAttack = async ({ handle, payload }) => {
+    setAttackBusy(true);
+    setAttackError(null);
+    try {
+      const attempt = await api.attack({ handle, payload });
+      setAttempts((prev) => [attempt, ...prev]);
+      // An attack is also a live cycle — surface its reasoning in the console.
+      setTranscript({
+        startedAt: attempt.at,
+        durationMs: attempt.durationMs,
+        injected: true,
+        hijacked: attempt.agentComplied,
+        vaultBefore: attempt.vaultBefore,
+        vaultAfter: attempt.vaultAfter,
+        verdict: attempt.txHash
+          ? {
+              outcome: attempt.outcome === "DRAINED" ? "EXECUTED" : "BLOCKED",
+              reason: attempt.reason,
+              txHash: attempt.txHash,
+            }
+          : null,
+        steps: [
+          {
+            agent: "RESEARCH",
+            title: `Reads ${attempt.handle}'s instruction`,
+            onchain: false,
+            input: attempt.payload,
+            output: attempt.research,
+            flag: attempt.agentComplied ? "HIJACKED" : "RESISTED",
+          },
+          ...(attempt.txHash
+            ? [
+                {
+                  agent: "PAYMENT",
+                  title: `Calls Treasury.executeTransfer(${attempt.requested} MON)`,
+                  onchain: true,
+                  output:
+                    attempt.outcome === "DRAINED"
+                      ? `Passed the guard — ${attempt.extracted} MON moved.`
+                      : `Stopped by GUARDIAN — ${attempt.reason}. No funds moved.`,
+                  flag: attempt.outcome === "DRAINED" ? "EXECUTED" : "BLOCKED",
+                  txHash: attempt.txHash,
+                },
+              ]
+            : []),
+        ],
+      });
+    } catch (e) {
+      setAttackError(
+        e.name === "TimeoutError" ? "The attack is taking too long — try again." : e.message
+      );
+    } finally {
+      setAttackBusy(false);
+    }
+  };
+
   const frozenCount = agents.filter((a) => a.frozen).length;
 
   return (
@@ -207,6 +271,13 @@ export default function App() {
 
       <div className="gridfield">
         <Hero onJump={jump} />
+        <Arena
+          attempts={attempts}
+          onAttack={launchAttack}
+          busy={attackBusy}
+          error={attackError}
+          explorer={EXPLORER}
+        />
         <HowItWorks />
       </div>
 

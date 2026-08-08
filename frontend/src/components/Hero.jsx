@@ -8,18 +8,29 @@ export default function Hero({ onJump }) {
           Monad Testnet · Chain 10143 · v1.0
         </p>
 
-        {/* The thesis, stated at the size it deserves. */}
-        <h1 className="font-display text-[clamp(2.6rem,7.4vw,5.6rem)] leading-[0.93] tracking-[-0.035em] font-extrabold m-0 max-w-[16ch] text-balance">
-          The threat isn't the hacker. It's your own agent going off&#8209;script.
+        {/* The thesis, stated at the size it deserves. The field is converging on
+            agents supervising agents; this is the opposing position. */}
+        <h1 className="font-display text-[clamp(2.6rem,7.4vw,5.6rem)] leading-[0.93] tracking-[-0.035em] font-extrabold m-0 max-w-[15ch] text-balance">
+          If the supervisor gets injected, who supervises the supervisor?
         </h1>
 
-        <p className="text-[15px] md:text-[16.5px] leading-relaxed text-muted m-0 mt-8 max-w-[58ch]">
-          GUARDIAN watches <em className="not-italic text-ink">how</em> each AI agent behaves — not just
-          how much it spends. It learns every agent's own baseline and freezes it on-chain the moment it
-          drifts, even when every single transaction sits comfortably within its limits.
+        <p className="text-[15px] md:text-[16.5px] leading-relaxed text-muted m-0 mt-8 max-w-[60ch]">
+          The pattern everyone is converging on is agents watching agents — one votes to veto, another
+          enforces. That is off-chain reasoning validating off-chain reasoning, and it collapses the
+          moment the checking agent is the one that gets compromised.
+        </p>
+        <p className="text-[15px] md:text-[16.5px] leading-relaxed text-ink m-0 mt-4 max-w-[60ch]">
+          GUARDIAN trusts no agent, including the one doing the checking. Enforcement lives inside the
+          contract — somewhere a prompt cannot reach.
         </p>
 
         <div className="flex flex-wrap items-center gap-3 mt-9">
+          <button
+            onClick={() => onJump("arena")}
+            className="font-mono text-[11.5px] uppercase tracking-wide px-5 py-3 bg-alarm text-ink hover:bg-alarm/85 transition-colors cursor-pointer"
+          >
+            Try to break it
+          </button>
           <button
             onClick={() => onJump("console")}
             className="font-mono text-[11.5px] uppercase tracking-wide px-5 py-3 bg-ink text-ground hover:bg-probe transition-colors cursor-pointer"

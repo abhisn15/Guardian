@@ -24,6 +24,18 @@ export async function lastTranscript() {
   return res.json();
 }
 
+export async function attack({ handle, payload }) {
+  const res = await fetch(`${BASE}/api/attack`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ handle, payload }),
+    signal: AbortSignal.timeout(120000),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `API ${res.status}`);
+  return body.attempt;
+}
+
 export async function runCycle({ inject = false } = {}) {
   const res = await fetch(`${BASE}/api/cycle${inject ? "?inject=1" : ""}`, {
     method: "POST",

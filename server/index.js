@@ -40,6 +40,39 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { transcript: lastTranscript, running });
   }
 
+  // The arena runs through the same serverless handler used in production, so
+  // what is tested locally is the code that actually ships.
+  if (url.pathname === "/api/attack" && req.method === "POST") {
+    const chunks = [];
+    for await (const c of req) chunks.push(c);
+    const raw = Buffer.concat(chunks).toString();
+
+    const shim = {
+      method: "POST",
+      body: raw,
+      query: Object.fromEntries(url.searchParams),
+    };
+    const resShim = {
+      _status: 200,
+      setHeader: (k, v) => res.setHeader(k, v),
+      status(code) {
+        this._status = code;
+        return this;
+      },
+      json(body) {
+        res.writeHead(this._status, { "Content-Type": "application/json" });
+        res.end(JSON.stringify(body));
+      },
+      end() {
+        res.writeHead(this._status);
+        res.end();
+      },
+    };
+
+    const { default: attack } = await import("../api/attack.mjs");
+    return attack(shim, resShim);
+  }
+
   if (url.pathname === "/api/cycle" && req.method === "POST") {
     if (running) return send(res, 409, { error: "A cycle is already running." });
 
