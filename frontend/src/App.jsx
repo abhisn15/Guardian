@@ -13,11 +13,18 @@ import AgentRoster from "./components/AgentRoster";
 import ReasoningTrace from "./components/ReasoningTrace";
 import ActivityFeed from "./components/ActivityFeed";
 
-const POLL_MS = 4000;
+// The public RPC rate-limits per IP, and every visitor polls independently. A
+// 4s tick with a deep backfill tripped 429s as soon as more than a couple of
+// people had the page open — which at a public event is the normal case, not
+// the edge case.
+const POLL_MS = 9000;
 // The RPC rejects getLogs spans beyond ~100 blocks. At ~300ms per block one
-// chunk is roughly 27 seconds of history.
+// chunk is roughly 27 seconds, so four chunks is about two minutes of backfill
+// — enough to show a run that just happened without hammering it on load.
 const CHUNK = 90;
-const HISTORY_CHUNKS = 12;
+const HISTORY_CHUNKS = 4;
+// On a 429, back off rather than retrying straight into the same wall.
+const BACKOFF_MAX_MS = 90000;
 
 export default function App() {
   const [agents, setAgents] = useState([]);
@@ -138,21 +145,34 @@ export default function App() {
 
   useEffect(() => {
     let alive = true;
+    let timer;
+    let delay = POLL_MS;
+
     const tick = async () => {
       if (!alive) return;
       try {
         setVault(formatEther(await treasury.balance()));
         await Promise.all([refreshAgents(), refreshEvents()]);
         setRpcError(null);
+        delay = POLL_MS; // healthy again
       } catch (e) {
-        setRpcError(e.shortMessage || e.message);
+        const msg = e.shortMessage || e.message || "";
+        const limited = /429|rate limit|too many/i.test(msg);
+        // Backing off on a rate limit is the difference between recovering and
+        // staying throttled: retrying at the same cadence just keeps the window
+        // full.
+        delay = limited ? Math.min(delay * 2, BACKOFF_MAX_MS) : POLL_MS;
+        setRpcError(
+          limited ? "Public RPC is rate-limiting — retrying more slowly." : msg
+        );
       }
+      if (alive) timer = setTimeout(tick, delay);
     };
+
     tick();
-    const id = setInterval(tick, POLL_MS);
     return () => {
       alive = false;
-      clearInterval(id);
+      clearTimeout(timer);
     };
   }, [refreshAgents, refreshEvents]);
 
