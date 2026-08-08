@@ -17,6 +17,7 @@ import {
   encodeBytes32String,
 } from "ethers";
 import { REGISTRY_ABI, GUARDIAN_ABI, TREASURY_ABI } from "../shared/abi.mjs";
+import { ensureFuel, explainError } from "../shared/fuel.mjs";
 import deployed from "../frontend/src/deployed.json" with { type: "json" };
 
 export const config = { maxDuration: 60 };
@@ -167,6 +168,9 @@ export default async function handler(req, res) {
   const push = (s) => steps.push({ ...s, at: new Date().toISOString() });
 
   try {
+    // Agents must be able to pay gas, or the cycle dies with an opaque error.
+    await ensureFuel(provider, [deployed.agents.PAYMENT, deployed.agents.INVESTMENT, deployed.agents.RESEARCH]);
+
     const vaultBefore = formatEther(await treasury.balance());
 
     // 1 — Research ingests untrusted data
@@ -317,7 +321,7 @@ Summarise briefly.`
         durationMs: Date.now() - t0,
         injected,
         failed: true,
-        error: err.shortMessage || err.message,
+        error: explainError(err),
         steps,
       },
     });
