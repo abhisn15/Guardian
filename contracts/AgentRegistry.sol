@@ -33,6 +33,16 @@ contract AgentRegistry {
         uint256 dailyBudget
     );
 
+    /// @notice Off-chain reasoning steps, attributed on-chain to the agent that
+    /// performed them. This is what makes a decision chain auditable rather than
+    /// merely logged in an application somewhere.
+    event AgentAction(
+        address indexed agent,
+        bytes32 indexed actionType,
+        uint256 blockNumber,
+        string detail
+    );
+
     modifier onlyAdmin() {
         if (msg.sender != admin) revert NotAdmin();
         _;
@@ -61,6 +71,19 @@ contract AgentRegistry {
         _agentList.push(agent);
 
         emit AgentRegistered(agent, role, maxTxLimit, dailyBudget);
+    }
+
+    /// @notice Record an off-chain reasoning step.
+    /// @dev Takes NO `agent` parameter on purpose: `msg.sender` is inherently
+    /// authentic, whereas an address parameter would let anyone forge entries in
+    /// another agent's audit trail. For a product whose value is verifiable
+    /// accountability, a forgeable trail is worse than no trail.
+    ///
+    /// Each agent writes from its own address, so five agents logging in the same
+    /// cycle touch five disjoint storage slots — nothing serialises.
+    function logAgentAction(bytes32 actionType, string calldata detail) external {
+        if (!_agents[msg.sender].registered) revert AgentNotRegistered(msg.sender);
+        emit AgentAction(msg.sender, actionType, block.number, detail);
     }
 
     function getAgent(address agent) external view returns (Agent memory) {

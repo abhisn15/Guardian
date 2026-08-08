@@ -89,13 +89,26 @@ contract Treasury {
         return address(this).balance;
     }
 
-    /// @dev Escape hatch buat admin (di luar jalur agent) — dipakai untuk
-    /// menarik sisa dana testnet setelah demo.
-    function adminWithdraw(address payable to, uint256 amount) external nonReentrant {
+    /// @notice Admin exit. Still routed through the guard — there is no bypass.
+    /// @dev A second, unguarded exit would void the entire security model: the
+    /// product's claim is that no path moves funds without the guard seeing it.
+    /// An admin escape hatch that skips the guard makes that claim false, and a
+    /// compromised admin key becomes a full drain. The admin is subject to the
+    /// same policy engine as every agent.
+    function emergencyWithdraw(address payable to, uint256 amount) external nonReentrant {
         if (msg.sender != admin) revert NotAdmin();
+
+        (bool allowed, bytes32 reason) = guardian.checkAndRecord(msg.sender, amount);
+        if (!allowed) {
+            emit TransferRejected(msg.sender, to, amount, reason);
+            return;
+        }
+
         if (amount > address(this).balance) {
             revert InsufficientBalance(amount, address(this).balance);
         }
+
+        emit TransferExecuted(msg.sender, to, amount);
         (bool sent, ) = to.call{value: amount}("");
         if (!sent) revert TransferFailed();
     }

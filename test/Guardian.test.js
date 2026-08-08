@@ -164,6 +164,61 @@ describe("GUARDIAN", function () {
     });
   });
 
+  describe("C4 — single guarded fund exit", function () {
+    it("admin exit is subject to the same policy engine", async function () {
+      const { admin, vendor, treasury, registry } = await deployAll();
+
+      // Admin registered with a 2 MON per-tx ceiling.
+      await registry.registerAgent(
+        admin.address,
+        ethers.encodeBytes32String("ADMIN"),
+        mon(2),
+        mon(50)
+      );
+
+      const before = await treasury.balance();
+
+      // Above the ceiling -> guard blocks the ADMIN, funds stay put.
+      await expect(treasury.connect(admin).emergencyWithdraw(vendor.address, mon(10)))
+        .to.emit(treasury, "TransferRejected")
+        .withArgs(
+          admin.address,
+          vendor.address,
+          mon(10),
+          ethers.encodeBytes32String("EXCEEDS_TX_LIMIT")
+        );
+
+      expect(await treasury.balance()).to.equal(before);
+    });
+
+    it("an unregistered admin cannot move funds at all", async function () {
+      const { admin, vendor, treasury } = await deployAll();
+      const before = await treasury.balance();
+
+      await expect(treasury.connect(admin).emergencyWithdraw(vendor.address, mon(1)))
+        .to.emit(treasury, "TransferRejected")
+        .withArgs(
+          admin.address,
+          vendor.address,
+          mon(1),
+          ethers.encodeBytes32String("NOT_REGISTERED")
+        );
+
+      expect(await treasury.balance()).to.equal(before);
+    });
+
+    it("exposes no fund-moving function other than the two guarded ones", async function () {
+      const { treasury } = await deployAll();
+
+      const movers = treasury.interface.fragments
+        .filter((f) => f.type === "function" && f.stateMutability !== "view")
+        .map((f) => f.name)
+        .filter((n) => !["deposit"].includes(n));
+
+      expect(movers.sort()).to.deep.equal(["emergencyWithdraw", "executeTransfer"]);
+    });
+  });
+
   describe("Klaim arsitektur", function () {
     it("Baseline muat persis 1 storage slot", async function () {
       const { guardian, investment, vendor, treasury } = await deployAll();

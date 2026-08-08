@@ -58,6 +58,20 @@ async function main() {
   await (await guardian.setTreasury(await treasury.getAddress())).wait();
   console.log("\nGuardian -> Treasury tersambung.");
 
+  // --- Register the admin as an agent too ---
+  // emergencyWithdraw routes through the guard (C4), so the admin must be a
+  // registered agent like everyone else. That is the point: no address, not
+  // even the deployer's, moves funds without the policy engine seeing it.
+  await (
+    await registry.registerAgent(
+      deployer.address,
+      ethers.encodeBytes32String("ADMIN"),
+      ethers.parseEther("5"),
+      ethers.parseEther("50")
+    )
+  ).wait();
+  console.log(`\nAdmin registered as an agent: ${deployer.address}`);
+
   // --- Daftarkan agent ---
   console.log("\nMendaftarkan agent:");
   for (const a of agents) {
