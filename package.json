@@ -5,8 +5,11 @@
   "license": "MIT",
   "scripts": {
     "compile": "hardhat compile",
+    "test": "hardhat test",
     "deploy:monad": "hardhat run scripts/deploy.js --network monadTestnet",
-    "test": "hardhat test"
+    "demo": "hardhat run scripts/demo.js --network monadTestnet",
+    "cycle": "hardhat run scripts/agent-cycle.js --network monadTestnet",
+    "cycle:inject": "hardhat run scripts/agent-cycle-inject.js --network monadTestnet"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",

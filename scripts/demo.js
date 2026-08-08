@@ -16,9 +16,10 @@ const EXPLORER = "https://testnet.monadvision.com/tx/";
 const GAS_LIMIT = 200000;
 const deployed = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "deployed.json"), "utf8"));
 
+const { prepareStage, sleep } = require("./lib/stage");
+
 const b32 = (s) => ethers.decodeBytes32String(s);
 const mon = (n) => ethers.parseEther(String(n));
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function agentSigner(role) {
   const pk = process.env[`${role}_AGENT_PK`];
@@ -53,56 +54,7 @@ async function attempt(treasury, signer, to, amount, label) {
 }
 
 async function main() {
-  const registry = await ethers.getContractAt("AgentRegistry", deployed.registry);
-  const guardian = await ethers.getContractAt("GuardianPolicyEngine", deployed.guardian);
-  const treasury = await ethers.getContractAt("Treasury", deployed.treasury);
-
-  // Bersihkan panggung dulu supaya demo bisa diulang (dry run + demo asli).
-  // Pembekuan itu permanen by design, jadi tanpa ini demo cuma jalan sekali.
-  console.log("Menyiapkan ulang baseline agent...");
-  for (const role of ["INVESTMENT", "PAYMENT", "RESEARCH"]) {
-    await (await guardian.resetAgentForDemo(deployed.agents[role])).wait();
-  }
-
-  const [deployer] = await ethers.getSigners();
-
-  // Isi ulang kas kalau menipis. Tanpa ini, demo yang dijalankan berulang
-  // akan gagal karena kehabisan dana — bukan karena guard-nya, dan itu
-  // menyesatkan di panggung.
-  const MIN_VAULT = ethers.parseEther("3");
-  if ((await treasury.balance()) < MIN_VAULT) {
-    const topUp = MIN_VAULT - (await treasury.balance());
-    console.log(`Kas menipis, mengisi ulang ${ethers.formatEther(topUp)} MON...`);
-    await (await treasury.connect(deployer).deposit({ value: topUp })).wait();
-  }
-
-  // Isi ulang gas tiap agent. WAJIB: Monad menagih gas berdasarkan gas LIMIT,
-  // bukan gas terpakai — jadi tiap percobaan (termasuk yang ditolak guard)
-  // membakar jatah penuh. Saldo agent habis jauh lebih cepat dari dugaan,
-  // dan gejalanya menyesatkan: "Signer had insufficient balance", bukan
-  // pesan dari guard-nya.
-  const MIN_AGENT_GAS = ethers.parseEther("1");
-  let funded = false;
-  for (const role of ["INVESTMENT", "PAYMENT", "RESEARCH"]) {
-    const addr = deployed.agents[role];
-    const bal = await ethers.provider.getBalance(addr);
-    if (bal < MIN_AGENT_GAS) {
-      const topUp = MIN_AGENT_GAS - bal;
-      console.log(`Gas ${role} menipis, mengisi ${ethers.formatEther(topUp)} MON...`);
-      await (await deployer.sendTransaction({ to: addr, value: topUp })).wait();
-      funded = true;
-    }
-  }
-
-  // Monad punya delayed merkle root (D=3, ~1,2 detik): saldo yang baru masuk
-  // belum tentu terlihat saat transaksi berikutnya divalidasi. Tanpa jeda ini
-  // gejalanya menyesatkan — "Signer had insufficient balance" padahal saldonya
-  // sudah ada.
-  if (funded) {
-    console.log("Menunggu saldo terlihat (delayed merkle root Monad)...");
-    await sleep(3000);
-  }
-  console.log("Siap.\n");
+  const { treasury, guardian } = await prepareStage(deployed);
 
   const investment = agentSigner("INVESTMENT");
   const payment = agentSigner("PAYMENT");
