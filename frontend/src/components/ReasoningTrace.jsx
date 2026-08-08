@@ -1,4 +1,5 @@
 import { useState } from "react";
+import FlowStrip from "./FlowStrip";
 
 // The transparency panel: what each agent actually received, actually produced,
 // and what the chain did about it. Raw model output is shown verbatim — a
@@ -27,13 +28,11 @@ export default function ReasoningTrace({ transcript, busy, explorer }) {
         )}
       </div>
 
+      <FlowStrip transcript={busy ? null : transcript} />
+
       {busy && <Running />}
 
-      {!busy && !transcript && (
-        <p className="px-4 py-8 font-mono text-[11px] text-faint text-center m-0">
-          No activity yet. Run a decision cycle to begin.
-        </p>
-      )}
+      {!busy && !transcript && <EmptyState />}
 
       {!busy && transcript?.failed && (
         <p className="px-4 py-6 font-mono text-[11px] text-alarm m-0">Cycle failed: {transcript.error}</p>
@@ -53,9 +52,23 @@ export default function ReasoningTrace({ transcript, busy, explorer }) {
   );
 }
 
+function EmptyState() {
+  return (
+    <div className="px-6 py-10 flex flex-col items-center gap-3 text-center">
+      <p className="text-[13px] text-muted m-0 max-w-[46ch] leading-relaxed">
+        Run a cycle to watch five agents reason, hand off to one another, and settle on-chain.
+      </p>
+      <p className="font-mono text-[10.5px] text-faint m-0 max-w-[52ch] leading-relaxed">
+        <span className="text-alarm">Inject Test Payload</span> feeds the Research Agent a poisoned
+        market report. Watch where the compromise travels — and where it stops.
+      </p>
+    </div>
+  );
+}
+
 function Running() {
   return (
-    <div className="px-4 py-8 flex flex-col items-center gap-2">
+    <div className="px-4 py-10 flex flex-col items-center gap-2.5">
       <div className="flex gap-1">
         {[0, 1, 2].map((i) => (
           <span
@@ -66,27 +79,52 @@ function Running() {
         ))}
       </div>
       <p className="font-mono text-[10.5px] text-muted m-0">
-        Five agents reasoning, then settling on-chain…
+        Agents reasoning, then settling on-chain…
+      </p>
+      <p className="font-mono text-[9.5px] text-faint m-0">
+        Five model calls plus a transaction — usually 10–25 seconds.
       </p>
     </div>
   );
 }
 
+const REASON_TEXT = {
+  EXCEEDS_TX_LIMIT: "the request exceeded this agent's per-transaction ceiling",
+  EXCEEDS_DAILY_BUDGET: "the request exceeded this agent's daily budget",
+  VELOCITY_SPIKE: "too many actions inside one window",
+  BURST_PATTERN: "actions arriving faster than this agent ever normally acts",
+  AMOUNT_DEVIATION: "the amount deviated sharply from this agent's own average",
+  AGENT_FROZEN: "this agent was already frozen",
+  READ_ONLY_ROLE: "this role holds no transfer authority",
+  NOT_REGISTERED: "this address is not a registered agent",
+};
+
 function Verdict({ transcript }) {
   const t = transcript;
   const blocked = t.verdict?.outcome === "BLOCKED";
+  const held = Number(t.vaultBefore) === Number(t.vaultAfter);
 
-  // The headline claim, stated plainly: the chain of reasoning was compromised
-  // and the money did not move anyway.
+  // State the claim plainly. The point is not that a transaction failed — it is
+  // that the reasoning was compromised and the money stayed put regardless.
   const headline = t.injected
     ? t.hijacked
       ? blocked
         ? "Reasoning chain hijacked. Funds held."
         : "Reasoning chain hijacked."
-      : "Payload rejected by the model this run."
+      : "The model refused the payload this run."
     : blocked
       ? "Transfer stopped by the guard."
-      : "Clean cycle.";
+      : held
+        ? "Clean cycle. No transfer proposed."
+        : "Clean cycle. Transfer approved.";
+
+  const sub = t.injected
+    ? t.hijacked
+      ? "Every agent downstream acted on the attacker's instruction. The guard is what held."
+      : "Honest outcome: the injection did not land this time. The guard was never reached."
+    : blocked
+      ? "The policy engine rejected it before any funds moved."
+      : "All checks passed.";
 
   const tone = t.injected && t.hijacked && blocked ? "alarm" : blocked ? "warn" : "pass";
   const border = { alarm: "border-alarm/40", warn: "border-warn/40", pass: "border-pass/30" }[tone];
@@ -94,13 +132,21 @@ function Verdict({ transcript }) {
   const text = { alarm: "text-alarm", warn: "text-warn", pass: "text-pass" }[tone];
 
   return (
-    <div className={`px-4 py-3 border-b ${border} ${wash} flex flex-wrap items-baseline gap-x-5 gap-y-1`}>
-      <span className={`font-sans text-[13px] font-semibold ${text}`}>{headline}</span>
-      <span className="font-mono text-[10.5px] text-muted tnum">
-        Treasury {Number(t.vaultBefore).toFixed(3)} → {Number(t.vaultAfter).toFixed(3)} MON
-      </span>
+    <div className={`px-4 py-3.5 border-b ${border} ${wash} trace-in`}>
+      <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+        <span className={`font-sans text-[14px] font-semibold tracking-[-0.01em] ${text}`}>
+          {headline}
+        </span>
+        <span className="font-mono text-[10.5px] text-muted tnum">
+          Treasury {Number(t.vaultBefore).toFixed(3)} → {Number(t.vaultAfter).toFixed(3)} MON
+        </span>
+      </div>
+      <p className="text-[12px] text-muted m-0 mt-1 leading-relaxed max-w-[64ch]">{sub}</p>
       {t.verdict?.reason && (
-        <span className="font-mono text-[10.5px] text-muted">reason {t.verdict.reason}</span>
+        <p className="font-mono text-[10.5px] text-faint m-0 mt-1.5">
+          <span className={text}>{t.verdict.reason}</span>
+          {REASON_TEXT[t.verdict.reason] && <span> — {REASON_TEXT[t.verdict.reason]}</span>}
+        </p>
       )}
     </div>
   );
