@@ -59,6 +59,17 @@ export default function App() {
   const seen = useRef(new Set());
   const seenAttacks = useRef(new Set());
   const cursor = useRef(null);
+
+  // A synchronous latch. Guarding on the `busy` state does not actually prevent
+  // a double submit: React flushes state on the next render, so a fast second
+  // click — or Enter followed by a click — gets through before `busy` is true
+  // and fires a second request. The duplicate then trips the server's rate
+  // limit, so the user sees an error for an attack that in fact succeeded.
+  // A ref updates immediately, which is the whole point.
+  //
+  // One latch covers both buttons: they share the same agents and the same
+  // rate-limited backend, so overlapping them is never what anyone wants.
+  const inFlight = useRef(false);
   const wallet = useWallet();
 
   const jump = useCallback((id) => {
@@ -278,6 +289,9 @@ export default function App() {
   }, []);
 
   const run = async (inject) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+
     setBusy(true);
     setNotice(null);
     setTranscript(null);
@@ -290,11 +304,15 @@ export default function App() {
           : `Could not run the cycle: ${e.message}`
       );
     } finally {
+      inFlight.current = false;
       setBusy(false);
     }
   };
 
   const launchAttack = async ({ handle, payload }) => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+
     setAttackBusy(true);
     setAttackError(null);
     try {
@@ -346,6 +364,7 @@ export default function App() {
         e.name === "TimeoutError" ? "The attack is taking too long — try again." : e.message
       );
     } finally {
+      inFlight.current = false;
       setAttackBusy(false);
     }
   };
@@ -361,7 +380,7 @@ export default function App() {
         <Arena
           attempts={attempts}
           onAttack={launchAttack}
-          busy={attackBusy}
+          busy={attackBusy || busy}
           error={attackError}
           explorer={EXPLORER}
         />
@@ -407,7 +426,7 @@ export default function App() {
 
           <button
             onClick={() => run(false)}
-            disabled={busy}
+            disabled={busy || attackBusy}
             className="font-mono text-[11px] uppercase tracking-wide px-3.5 py-2 border border-ink bg-ink text-ground hover:bg-probe hover:border-probe disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             {busy ? "Running…" : "Run Decision Cycle"}
@@ -415,7 +434,7 @@ export default function App() {
 
           <button
             onClick={() => run(true)}
-            disabled={busy}
+            disabled={busy || attackBusy}
             className="font-mono text-[11px] uppercase tracking-wide px-3.5 py-2 border border-alarm text-alarm bg-surface hover:bg-alarm-wash disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             Inject Test Payload
