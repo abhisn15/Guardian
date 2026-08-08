@@ -7,6 +7,14 @@ import BlockedStamp from "./BlockedStamp";
 // summary here would defeat the purpose, because the claim being demonstrated
 // is that the reasoning chain really was hijacked.
 
+const PORTRAIT = {
+  TREASURY: "/agents/treasury.webp",
+  RESEARCH: "/agents/research.webp",
+  INVESTMENT: "/agents/investment.webp",
+  PAYMENT: "/agents/payment.webp",
+  REPORTING: "/agents/reporting.webp",
+};
+
 const FLAG_STYLE = {
   HIJACKED: "text-alarm border-alarm/40 bg-alarm-wash",
   RESISTED: "text-pass border-pass/30 bg-pass-wash",
@@ -196,7 +204,20 @@ function Step({ index, step, explorer }) {
       >
         <span className="font-mono text-[9.5px] text-faint tnum w-4 shrink-0">{index}</span>
 
-        <span className="font-mono text-[10px] font-medium w-[86px] shrink-0 truncate">{step.agent}</span>
+        {PORTRAIT[step.agent] && (
+          <img
+            src={PORTRAIT[step.agent]}
+            alt=""
+            width={22}
+            height={22}
+            loading="lazy"
+            className={`w-[22px] h-[22px] shrink-0 border border-rule object-cover ${
+              step.flag === "HIJACKED" ? "ring-1 ring-alarm" : ""
+            }`}
+          />
+        )}
+
+        <span className="font-mono text-[10px] font-medium w-[80px] shrink-0 truncate">{step.agent}</span>
 
         <span
           className={`font-mono text-[8.5px] px-1 py-0.5 border shrink-0 ${

@@ -13,6 +13,17 @@ const LIMITS = {
   REPORTING: "read-only",
 };
 
+// Portraits give each agent an identity you can recognise across the page, which
+// matters once one of them is frozen and the others are not. Served from
+// /public rather than bundled: 128px WebP, ~8 KB each.
+const PORTRAIT = {
+  TREASURY: "/agents/treasury.webp",
+  RESEARCH: "/agents/research.webp",
+  INVESTMENT: "/agents/investment.webp",
+  PAYMENT: "/agents/payment.webp",
+  REPORTING: "/agents/reporting.webp",
+};
+
 export default function AgentRoster({ agents, explorer }) {
   return (
     <section className="border border-rule bg-surface">
@@ -53,16 +64,32 @@ function AgentRow({ agent, explorer }) {
   return (
     <li className={`px-4 py-3 ${frozen ? "bg-alarm-wash/60" : ""}`}>
       <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="min-w-0">
-          <div className="font-sans text-[13px] font-semibold leading-tight">{agent.role}</div>
-          <a
-            href={`${explorer}/address/${agent.address}`}
-            target="_blank"
-            rel="noreferrer"
-            className="font-mono text-[10px] text-faint hover:text-probe underline decoration-rule underline-offset-2"
-          >
-            {shortAddr(agent.address)}
-          </a>
+        <div className="flex items-start gap-2.5 min-w-0">
+          {PORTRAIT[agent.role] && (
+            <img
+              src={PORTRAIT[agent.role]}
+              alt=""
+              width={44}
+              height={44}
+              loading="lazy"
+              // A frozen agent drains of colour — the roster should read at a
+              // glance without anyone parsing the status pill.
+              className={`w-11 h-11 shrink-0 border border-rule object-cover transition-all duration-300 ${
+                frozen ? "grayscale opacity-45" : ""
+              }`}
+            />
+          )}
+          <div className="min-w-0">
+            <div className="font-sans text-[13px] font-semibold leading-tight">{agent.role}</div>
+            <a
+              href={`${explorer}/address/${agent.address}`}
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono text-[10px] text-faint hover:text-probe underline decoration-rule underline-offset-2"
+            >
+              {shortAddr(agent.address)}
+            </a>
+          </div>
         </div>
         <span
           className={`shrink-0 font-mono text-[9px] tracking-wide px-1.5 py-0.5 border inline-flex items-center gap-1 ${tone}`}
