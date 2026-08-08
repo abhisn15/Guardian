@@ -1,4 +1,4 @@
-import { JsonRpcProvider, Contract, decodeBytes32String } from "ethers";
+import { JsonRpcProvider, Contract, decodeBytes32String, encodeBytes32String } from "ethers";
 import deployed from "./deployed.json";
 
 export const RPC_URL = "https://testnet-rpc.monad.xyz";
@@ -11,6 +11,7 @@ export const provider = new JsonRpcProvider(RPC_URL, CHAIN_ID, { staticNetwork: 
 export const REGISTRY_ABI = [
   "function getAgent(address) view returns (tuple(bytes32 role, uint128 maxTxLimit, uint128 dailyBudget, bool registered))",
   "function isReadOnly(address) view returns (bool)",
+  "event AgentAction(address indexed agent, bytes32 indexed actionType, uint256 blockNumber, string detail)",
 ];
 
 export const GUARDIAN_ABI = [
@@ -48,4 +49,31 @@ export function b32(value) {
 
 export function shortAddr(a) {
   return a ? `${a.slice(0, 6)}…${a.slice(-4)}` : "";
+}
+
+// Attack attempts are reconstructed from chain events rather than a database, so
+// every device in the room sees the same board — and anyone can audit it.
+export const ATTACK_TOPICS = [
+  registry.interface.getEvent("AgentAction").topicHash,
+  null, // any agent
+  encodeBytes32String("ATTACK"),
+];
+
+/// detail is `handle|outcome|extracted|reason|payload snippet`
+export function parseAttackLog(log) {
+  const parsed = registry.interface.parseLog(log);
+  if (!parsed) return null;
+  const [handle, outcome, extracted, reason, ...rest] = String(parsed.args[3]).split("|");
+  if (!handle || !outcome) return null;
+  return {
+    key: `${log.transactionHash}-${log.index}`,
+    handle,
+    outcome,
+    reason: reason || null,
+    extracted: Number(extracted) || 0,
+    payload: rest.join("|") || "(payload not recorded on-chain)",
+    block: log.blockNumber,
+    recordTx: log.transactionHash,
+    fromChain: true,
+  };
 }

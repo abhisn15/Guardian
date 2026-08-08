@@ -166,11 +166,13 @@ export default function Arena({ attempts, onAttack, busy, error, explorer }) {
 
           {/* ---- leaderboard ---- */}
           <div className="border border-rule bg-surface min-w-0">
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-rule bg-sunken">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-rule bg-sunken gap-3">
               <h3 className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-muted m-0">
                 Attempts
               </h3>
-              <span className="font-mono text-[9.5px] text-faint">newest first</span>
+              <span className="font-mono text-[9.5px] text-faint">
+                everyone's, read from chain
+              </span>
             </div>
 
             {/* The verdict on the freshest attempt, given room to land before
@@ -251,6 +253,14 @@ function Attempt({ a, n, explorer }) {
         {a.reason && <span className="font-mono text-[9.5px] text-faint">{a.reason}</span>}
         {a.extracted > 0 && (
           <span className="font-mono text-[10px] text-alarm tnum">−{a.extracted} MON</span>
+        )}
+        {a.fromChain && (
+          <span
+            className="font-mono text-[8.5px] text-faint border border-rule px-1 py-0.5"
+            title="Someone else's attempt, read back from the chain"
+          >
+            another device
+          </span>
         )}
       </div>
 

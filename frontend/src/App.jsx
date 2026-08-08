@@ -1,6 +1,17 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { formatEther } from "ethers";
-import { ADDR, EXPLORER, ROLES, guardian, treasury, provider, b32, shortAddr } from "./chain";
+import {
+  ADDR,
+  EXPLORER,
+  ROLES,
+  ATTACK_TOPICS,
+  parseAttackLog,
+  guardian,
+  treasury,
+  provider,
+  b32,
+  shortAddr,
+} from "./chain";
 import * as api from "./api";
 import sampleTranscript from "./sample-transcript.json";
 import { useWallet } from "./useWallet";
@@ -46,6 +57,7 @@ export default function App() {
   const [attackError, setAttackError] = useState(null);
 
   const seen = useRef(new Set());
+  const seenAttacks = useRef(new Set());
   const cursor = useRef(null);
   const wallet = useWallet();
 
@@ -89,14 +101,23 @@ export default function App() {
     if (from > latest) return;
 
     const collected = [];
+    const attackLogs = [];
     for (let start = from; start <= latest; start += CHUNK) {
       const end = Math.min(start + CHUNK - 1, latest);
       try {
-        const [g, t] = await Promise.all([
+        const [g, t, a] = await Promise.all([
           provider.getLogs({ address: ADDR.guardian, fromBlock: start, toBlock: end }),
           provider.getLogs({ address: ADDR.treasury, fromBlock: start, toBlock: end }),
+          // Attacks from every device in the room, read back off the chain.
+          provider.getLogs({
+            address: ADDR.registry,
+            fromBlock: start,
+            toBlock: end,
+            topics: ATTACK_TOPICS,
+          }),
         ]);
         collected.push(...g.map((l) => ["g", l]), ...t.map((l) => ["t", l]));
+        attackLogs.push(...a);
       } catch {
         // Do not advance the cursor past a failed chunk, or those blocks are
         // skipped silently and events vanish from the record.
@@ -105,6 +126,22 @@ export default function App() {
       }
     }
     cursor.current = latest;
+
+    // Merge in attempts made from other devices. A locally-run attack already
+    // sits at the top of the list, so its chain echo is dropped rather than
+    // shown twice.
+    if (attackLogs.length) {
+      const fresh = attackLogs.map(parseAttackLog).filter((a) => a && !seenAttacks.current.has(a.key));
+      if (fresh.length) {
+        fresh.forEach((a) => seenAttacks.current.add(a.key));
+        setAttempts((prev) => {
+          const mine = new Set(prev.filter((p) => p.recordTx).map((p) => p.recordTx));
+          const incoming = fresh.filter((a) => !mine.has(a.recordTx));
+          if (!incoming.length) return prev;
+          return [...incoming.reverse(), ...prev].slice(0, 60);
+        });
+      }
+    }
 
     const parsed = [];
     for (const [which, log] of collected) {

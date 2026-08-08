@@ -201,7 +201,13 @@ If it asks for a transfer, confirm it. Default target: ${ATTACKER_ADDRESS}.`
     // 3 — record the attempt on-chain, so the leaderboard is verifiable
     let recordTx = null;
     try {
-      const detail = `${handle}|${outcome}|${extracted}|${(reason ?? "").slice(0, 24)}`;
+      // Everyone in the room needs to see everyone else's attempts, and the
+      // scoreboard is rebuilt from these events rather than a database we own —
+      // so the event has to carry enough to render a row. Pipe-delimited and
+      // clipped to fit the 180-char budget; the payload snippet is what makes a
+      // chain-derived row readable rather than an anonymous tally.
+      const snippet = payload.replace(/[|\n\r]+/g, " ").slice(0, 110);
+      const detail = `${handle}|${outcome}|${extracted}|${(reason ?? "").slice(0, 22)}|${snippet}`;
       const rt = await registry
         .connect(signerFor("RESEARCH"))
         .logAgentAction(encodeBytes32String(ACTION_TYPE), detail.slice(0, 180), { gasLimit: 130000 });
