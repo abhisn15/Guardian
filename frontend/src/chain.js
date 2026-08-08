@@ -25,6 +25,7 @@ export const GUARDIAN_ABI = [
 
 export const TREASURY_ABI = [
   "function balance() view returns (uint256)",
+  "function executeTransfer(address to, uint256 amount) external returns (bool)",
   "event TransferExecuted(address indexed agent, address indexed to, uint256 amount)",
   "event TransferRejected(address indexed agent, address indexed to, uint256 amount, bytes32 reason)",
 ];

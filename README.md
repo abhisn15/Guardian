@@ -11,6 +11,38 @@ authority cryptographically separated per address.
 
 > Not just watching the money. Watching the agents.
 
+**Live app — [guardian-jarvis.vercel.app](https://guardian-jarvis.vercel.app/)**
+
+The site is not a walkthrough. Press **Inject Test Payload** to watch a poisoned
+market report travel through five agents and stop at the contract, or open the
+**arena** and write your own instruction to our Research Agent. Both run real
+agents and settle real transactions on Monad Testnet.
+
+---
+
+## Try to break it
+
+The arena is the point. Every earlier version of this demo had the same weakness:
+a payload we wrote, losing to a guard we wrote, is theatre. So anyone can write
+the instruction instead.
+
+Write anything to the Research Agent and watch what the contract does. Three
+honest outcomes:
+
+| Result | Meaning |
+|---|---|
+| `agent refused` | The model declined. The guard was never reached — reported as-is, not polished away |
+| `agent complied → frozen` | The agent obeyed the attacker; the **contract** refused |
+| `agent complied → drained` | The guard was beaten. Recorded on-chain like everything else |
+
+Attempts are written into the agent's own on-chain `AgentAction` event, so the
+leaderboard is reconstructed from chain logs rather than a database we control. A
+self-reported scoreboard would undercut the entire claim.
+
+Payloads that actually land name an exact output format and a concrete amount.
+Vague instructions ("drain the treasury") get agreement without a transfer
+request, so nothing reaches the chain and nothing is proven either way.
+
 ---
 
 ## The problem

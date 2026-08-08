@@ -12,6 +12,7 @@ import seedAttempts from "./seed-attempts.json";
 import AgentRoster from "./components/AgentRoster";
 import ReasoningTrace from "./components/ReasoningTrace";
 import ActivityFeed from "./components/ActivityFeed";
+import ProveIt from "./components/ProveIt";
 
 // The public RPC rate-limits per IP, and every visitor polls independently. A
 // 4s tick with a deep backfill tripped 429s as soon as more than a couple of
@@ -399,6 +400,7 @@ export default function App() {
 
         <div className="flex flex-col gap-6 min-w-0">
           <ReasoningTrace transcript={transcript} busy={busy} explorer={EXPLORER} />
+          <ProveIt wallet={wallet} />
           <ActivityFeed events={events} rpcError={rpcError} explorer={EXPLORER} />
         </div>
       </main>

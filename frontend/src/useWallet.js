@@ -94,6 +94,32 @@ export function useWallet() {
     setError(null);
   }, []);
 
+  // Pick the session back up on load. Without this, a wallet that already
+  // granted access still shows "Connect Wallet" until the user clicks again —
+  // which reads as the button being broken.
+  useEffect(() => {
+    if (!hasWallet) return;
+    (async () => {
+      try {
+        const accounts = await window.ethereum.request({ method: "eth_accounts" });
+        if (accounts?.length) {
+          setAddress(accounts[0]);
+          await refresh(accounts[0]);
+        }
+      } catch {
+        /* wallet locked or unavailable — nothing to restore */
+      }
+    })();
+  }, [hasWallet, refresh]);
+
+  // Balances go stale the moment anything moves. Poll while connected so the
+  // header is not showing a number from whenever the user happened to connect.
+  useEffect(() => {
+    if (!address) return;
+    const id = setInterval(() => refresh(address), 12000);
+    return () => clearInterval(id);
+  }, [address, refresh]);
+
   useEffect(() => {
     if (!hasWallet) return;
     const onAccounts = (accounts) => {
@@ -101,6 +127,8 @@ export function useWallet() {
       setAddress(accounts[0]);
       refresh(accounts[0]);
     };
+    // A network switch changes both the chain and the balance, so re-read
+    // rather than trusting what was fetched on the previous chain.
     const onChain = () => address && refresh(address);
 
     window.ethereum.on("accountsChanged", onAccounts);
