@@ -1,14 +1,24 @@
-// Talks to the local GUARDIAN API. The agents hold private keys and an LLM key,
-// so their reasoning runs server-side; the browser only asks and displays.
-const BASE = import.meta.env.VITE_API_URL || "http://localhost:8787";
+// Talks to the GUARDIAN agent API.
+//
+// In production the API is a serverless function on the same origin, so a
+// relative path is correct. In local development the agent server runs
+// separately on :8787. Hardcoding either one breaks the other.
+const BASE = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? "http://localhost:8787" : "");
 
 export async function health() {
-  const res = await fetch(`${BASE}/api/health`, { signal: AbortSignal.timeout(3000) });
-  if (!res.ok) throw new Error(`API ${res.status}`);
-  return res.json();
+  // The deployed function has no health route; a cheap OPTIONS on the cycle
+  // endpoint tells us whether an API exists without spending a run.
+  const url = BASE ? `${BASE}/api/health` : "/api/cycle";
+  const res = await fetch(url, {
+    method: BASE ? "GET" : "OPTIONS",
+    signal: AbortSignal.timeout(4000),
+  });
+  if (!res.ok && res.status !== 204) throw new Error(`API ${res.status}`);
+  return { ok: true };
 }
 
 export async function lastTranscript() {
+  if (!BASE) return { transcript: null }; // serverless keeps no state between calls
   const res = await fetch(`${BASE}/api/transcript`);
   if (!res.ok) throw new Error(`API ${res.status}`);
   return res.json();
@@ -17,10 +27,10 @@ export async function lastTranscript() {
 export async function runCycle({ inject = false } = {}) {
   const res = await fetch(`${BASE}/api/cycle${inject ? "?inject=1" : ""}`, {
     method: "POST",
-    // A full cycle is five LLM calls plus on-chain transactions.
-    signal: AbortSignal.timeout(240000),
+    // Five model calls plus an on-chain transaction.
+    signal: AbortSignal.timeout(120000),
   });
-  const body = await res.json();
+  const body = await res.json().catch(() => ({}));
   if (!res.ok && !body.transcript) throw new Error(body.error || `API ${res.status}`);
   return body.transcript;
 }

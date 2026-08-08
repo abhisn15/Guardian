@@ -12,6 +12,9 @@
     "cycle:inject": "hardhat run scripts/agent-cycle-inject.js --network monadTestnet",
     "server": "node server/index.js"
   },
+  "dependencies": {
+    "ethers": "^6.15.0"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "dotenv": "^17.4.2",
