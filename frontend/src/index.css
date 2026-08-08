@@ -27,8 +27,23 @@
   --color-probe: #7ea6cc;
   --color-probe-wash: #14202b;
 
+  /* Archivo carries the headlines — a grotesque with enough weight to hold at
+     display size, and distinct from the Inter/Space Grotesk default. Plex does
+     the working type: Sans for UI, Mono for anything the machine produced. */
+  --font-display: "Archivo", "IBM Plex Sans", system-ui, sans-serif;
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }
 
 html {

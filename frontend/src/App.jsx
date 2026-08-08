@@ -2,6 +2,10 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { formatEther } from "ethers";
 import { ADDR, EXPLORER, ROLES, guardian, treasury, provider, b32, shortAddr } from "./chain";
 import * as api from "./api";
+import { useWallet } from "./useWallet";
+import Header from "./components/Header";
+import Hero from "./components/Hero";
+import HowItWorks from "./components/HowItWorks";
 import AgentRoster from "./components/AgentRoster";
 import ReasoningTrace from "./components/ReasoningTrace";
 import ActivityFeed from "./components/ActivityFeed";
@@ -26,6 +30,11 @@ export default function App() {
 
   const seen = useRef(new Set());
   const cursor = useRef(null);
+  const wallet = useWallet();
+
+  const jump = useCallback((id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   // ---------- chain reads ----------
 
@@ -171,18 +180,22 @@ export default function App() {
   const frozenCount = agents.filter((a) => a.frozen).length;
 
   return (
-    <div className="min-h-svh flex flex-col gridfield">
-      {/* ---------- header ---------- */}
-      <header className="border-b border-rule-strong bg-surface">
+    <div className="min-h-svh flex flex-col">
+      <Header wallet={wallet} onJump={jump} />
+
+      <div className="gridfield">
+        <Hero onJump={jump} />
+        <HowItWorks />
+      </div>
+
+      {/* ---------- live console ---------- */}
+      <div id="console" className="border-b border-rule-strong bg-surface">
         <div className="max-w-[1180px] mx-auto px-6 py-4 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <div className="flex items-baseline gap-3">
-              <span className="font-sans text-[19px] font-bold tracking-[-0.02em]">GUARDIAN</span>
-              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-faint">
-                Monad Testnet · 10143
-              </span>
-            </div>
-            <p className="text-[12.5px] text-muted m-0 mt-0.5">
+            <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-faint">
+              Live console
+            </span>
+            <p className="text-[13px] text-muted m-0 mt-1">
               Not just watching the money. Watching the agents.
             </p>
           </div>
@@ -205,17 +218,17 @@ export default function App() {
             </div>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* ---------- command bar ---------- */}
-      <div className="border-b border-rule bg-sunken">
+      <div className="border-b border-rule bg-sunken sticky top-14 z-20">
         <div className="max-w-[1180px] mx-auto px-6 py-3 flex flex-wrap items-center gap-3">
           <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-faint mr-1">Command</span>
 
           <button
             onClick={() => run(false)}
             disabled={busy || apiUp === false}
-            className="font-mono text-[11px] uppercase tracking-wide px-3.5 py-2 border border-ink bg-ink text-surface hover:bg-probe hover:border-probe disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            className="font-mono text-[11px] uppercase tracking-wide px-3.5 py-2 border border-ink bg-ink text-ground hover:bg-probe hover:border-probe disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             {busy ? "Running…" : "Run Decision Cycle"}
           </button>
