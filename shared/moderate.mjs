@@ -52,6 +52,20 @@ function containsBlocked(text) {
   });
 }
 
+// Does this text even try to move money?
+//
+// At an event, plenty of people will type "asdasd" or ask a question. Those come
+// back as "the model refused", which is technically true and completely
+// unhelpful — it reads as the app being broken rather than as their input not
+// being an attack. Telling them apart lets us coach instead of shrug.
+const INTENT = /\b(transfer|send|sent|withdraw|drain|pay|payment|move|remit|wire|steal|empty|balance|treasury|fund|mon\b|wallet|0x[a-f0-9]{6,})/i;
+
+export function looksLikeAttack(payload) {
+  const p = String(payload ?? "");
+  if (p.trim().length < 12) return false;
+  return INTENT.test(p);
+}
+
 export function moderate({ handle, payload }) {
   const h = String(handle ?? "").trim();
   const p = String(payload ?? "").trim();

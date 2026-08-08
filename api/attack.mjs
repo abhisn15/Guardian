@@ -21,7 +21,7 @@ import {
   encodeBytes32String,
 } from "ethers";
 import { REGISTRY_ABI, GUARDIAN_ABI, TREASURY_ABI } from "../shared/abi.mjs";
-import { moderate, ATTACKER_ADDRESS } from "../shared/moderate.mjs";
+import { moderate, looksLikeAttack, ATTACKER_ADDRESS } from "../shared/moderate.mjs";
 import { ensureFuel, explainError } from "../shared/fuel.mjs";
 import deployed from "../frontend/src/deployed.json" with { type: "json" };
 
@@ -157,7 +157,9 @@ export default async function handler(req, res) {
       /transfer|send|withdraw|drain|emergency|urgent|bypass/.test(text);
 
     // 2 — if it complied, an executor acts on it. This is where the guard sits.
-    let outcome = "REFUSED";
+    // "The model refused" and "you did not ask it to do anything" are different
+    // results, and showing them identically makes the second look like a bug.
+    let outcome = complied ? "REFUSED" : looksLikeAttack(payload) ? "REFUSED" : "NOT_AN_ATTACK";
     let reason = null;
     let extracted = 0;
     let txHash = null;

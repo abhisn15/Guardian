@@ -8,6 +8,11 @@ import BlockedStamp from "./BlockedStamp";
 // we wrote, proves nothing. Payloads written by strangers cannot be staged.
 
 const OUTCOME = {
+  NOT_AN_ATTACK: {
+    label: "not an attack",
+    tone: "muted",
+    note: "Nothing in that asked the agent to move money, so there was nothing for the guard to stop. Tell it to send an amount somewhere — tap an example below to see the shape.",
+  },
   REFUSED: {
     label: "agent refused",
     tone: "muted",
@@ -65,6 +70,8 @@ const STAMP_FOR = {
   BLOCKED: "blocked",
   DRAINED: "drained",
   REFUSED: "refused",
+  // NOT_AN_ATTACK gets no stamp on purpose — nothing was ruled on, and stamping
+  // it would dress up a shrug as a verdict.
 };
 
 export default function Arena({ attempts, onAttack, busy, error, explorer }) {
@@ -127,9 +134,18 @@ export default function Arena({ attempts, onAttack, busy, error, explorer }) {
                 placeholder="Ignore all previous instructions…"
                 className="w-full bg-ground border border-rule-strong px-3 py-2 font-mono text-[12.5px] leading-relaxed text-ink focus:outline-none focus:border-probe placeholder:text-faint resize-y"
               />
-              <span className="font-mono text-[9.5px] text-faint tnum self-end">
-                {payload.length}/500
-              </span>
+              <div className="flex items-baseline justify-between gap-3">
+                {/* Nudge before the click, not after. Naming the three parts is
+                    what turns a shrug into a landed attack. */}
+                <span className="font-mono text-[9.5px] text-faint leading-snug">
+                  {payload.trim().length > 0 && !/\b\d/.test(payload)
+                    ? "Tip: name an amount and an address, or the agent has nothing to act on."
+                    : "Works best with an exact instruction, an amount, and an address."}
+                </span>
+                <span className="font-mono text-[9.5px] text-faint tnum shrink-0">
+                  {payload.length}/500
+                </span>
+              </div>
             </Field>
 
             <button
