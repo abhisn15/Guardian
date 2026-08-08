@@ -1,26 +1,60 @@
 @import "tailwindcss";
 
-/* Palet & tipografi mengikuti brand kit resmi Monad (monad.xyz/brand-and-media-kit).
-   Britti Sans (headline resmi) proprietary, jadi heading pakai Space Grotesk. */
+/* GUARDIAN — clinical instrument panel.
+   Deliberately light-ground: monitoring tools read as instruments, not as
+   dark-mode crypto dashboards. One alarm colour, one pass colour, everything
+   else structural. IBM Plex for engineering character over the usual defaults. */
 @theme {
-  --color-navy: #0e091c;
-  --color-panel: #160f2c;
-  --color-accent: #6e54ff;
-  --color-accent-soft: #ddd7fe;
-  --color-ok: #85e6ff;
-  --color-warn: #ffae45;
-  --color-danger: #ff5c8a;
-  --color-ink: #e4e1f5;
-  --color-ink-dim: #8a82ae;
+  --color-ground: #f2f2ef;
+  --color-surface: #ffffff;
+  --color-sunken: #e9e9e4;
 
-  --font-sans: "Inter", system-ui, sans-serif;
-  --font-head: "Space Grotesk", system-ui, sans-serif;
-  --font-mono: "Roboto Mono", ui-monospace, Consolas, monospace;
+  --color-ink: #16181c;
+  --color-muted: #6b7078;
+  --color-faint: #9aa0a6;
+
+  --color-rule: #d9d9d3;
+  --color-rule-strong: #bdbdb5;
+
+  --color-alarm: #c42b1c;
+  --color-alarm-wash: #fbeceb;
+  --color-pass: #0f7b4f;
+  --color-pass-wash: #e9f4ef;
+  --color-warn: #a45c09;
+  --color-warn-wash: #fbf2e5;
+  --color-probe: #2d4a8a;
+  --color-probe-wash: #eaeef7;
+
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
 }
 
 body {
-  @apply bg-navy text-ink font-sans antialiased m-0;
-  background-image: radial-gradient(circle at 12% -8%, rgb(110 84 255 / 0.18), transparent 46%);
+  @apply bg-ground text-ink font-sans antialiased m-0;
   min-height: 100svh;
   text-rendering: optimizeLegibility;
+}
+
+/* Faint grid, like graph paper under an instrument readout. Structural, not decorative. */
+.gridfield {
+  background-image:
+    linear-gradient(to right, rgb(0 0 0 / 0.028) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(0 0 0 / 0.028) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Live pulse on the frozen state — draws the eye without animating everything. */
+@keyframes alarmpulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.alarm-dot {
+  animation: alarmpulse 1.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .alarm-dot { animation: none; }
 }

@@ -9,7 +9,8 @@
     "deploy:monad": "hardhat run scripts/deploy.js --network monadTestnet",
     "demo": "hardhat run scripts/demo.js --network monadTestnet",
     "cycle": "hardhat run scripts/agent-cycle.js --network monadTestnet",
-    "cycle:inject": "hardhat run scripts/agent-cycle-inject.js --network monadTestnet"
+    "cycle:inject": "hardhat run scripts/agent-cycle-inject.js --network monadTestnet",
+    "server": "node server/index.js"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
