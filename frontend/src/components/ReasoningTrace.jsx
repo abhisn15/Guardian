@@ -21,11 +21,18 @@ export default function ReasoningTrace({ transcript, busy, explorer }) {
         <h2 className="font-mono text-[9.5px] uppercase tracking-[0.16em] text-muted m-0">
           Agent Reasoning Trace
         </h2>
-        {transcript && (
-          <span className="font-mono text-[9.5px] text-faint tnum">
-            {(transcript.durationMs / 1000).toFixed(1)}s · {transcript.steps.length} steps
-          </span>
-        )}
+        <span className="flex items-center gap-2 shrink-0">
+          {transcript?.recorded && (
+            <span className="font-mono text-[9px] uppercase tracking-wide px-1.5 py-0.5 border border-warn/40 text-warn bg-warn-wash">
+              Recorded run
+            </span>
+          )}
+          {transcript && (
+            <span className="font-mono text-[9.5px] text-faint tnum">
+              {(transcript.durationMs / 1000).toFixed(1)}s · {transcript.steps.length} steps
+            </span>
+          )}
+        </span>
       </div>
 
       <FlowStrip transcript={busy ? null : transcript} />

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { formatEther } from "ethers";
 import { ADDR, EXPLORER, ROLES, guardian, treasury, provider, b32, shortAddr } from "./chain";
 import * as api from "./api";
+import sampleTranscript from "./sample-transcript.json";
 import { useWallet } from "./useWallet";
 import Header from "./components/Header";
 import Hero from "./components/Hero";
@@ -152,12 +153,20 @@ export default function App() {
   useEffect(() => {
     api
       .health()
-      .then(() => setApiUp(true))
-      .catch(() => setApiUp(false));
-    api
-      .lastTranscript()
-      .then((r) => r.transcript && setTranscript(r.transcript))
-      .catch(() => {});
+      .then(() => {
+        setApiUp(true);
+        api
+          .lastTranscript()
+          .then((r) => r.transcript && setTranscript(r.transcript))
+          .catch(() => {});
+      })
+      .catch(() => {
+        // Deployed build with no agent API reachable. Show a real recorded run
+        // rather than an empty panel — clearly labelled as recorded, because
+        // passing it off as live would be the one thing this project cannot do.
+        setApiUp(false);
+        setTranscript({ ...sampleTranscript, recorded: true });
+      });
   }, []);
 
   const run = async (inject) => {
@@ -242,8 +251,9 @@ export default function App() {
           </button>
 
           {apiUp === false && (
-            <span className="font-mono text-[11px] text-warn">
-              Agent API offline — start it with <code className="bg-warn-wash px-1">npm run server</code>
+            <span className="font-mono text-[10.5px] text-warn">
+              Showing a recorded run. The agents hold private keys, so they run locally —{" "}
+              <code className="bg-warn-wash px-1">npm run server</code> to drive them live.
             </span>
           )}
           {notice && <span className="font-mono text-[11px] text-alarm">{notice}</span>}
