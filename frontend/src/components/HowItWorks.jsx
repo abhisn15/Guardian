@@ -1,7 +1,7 @@
 const FAILURES = [
   {
     label: "Static thresholds",
-    detail: "Cannot catch twenty small transfers that each sit under the limit.",
+    detail: "Blind to a run of small transfers that each sit under the limit.",
   },
   {
     label: "Off-chain monitoring",

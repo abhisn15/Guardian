@@ -53,8 +53,8 @@ itself going off-script through a bug, prompt injection, or faulty reasoning.
 Existing defences all fail at the same point:
 
 - **Static thresholds (ERC-7265)** are hard to calibrate. Too tight and legitimate activity
-  is blocked; too loose and abuse slips through. They cannot catch twenty consecutive small
-  transfers each sitting under the limit.
+  is blocked; too loose and abuse slips through. They are blind to a run of small transfers
+  that each sit under the limit.
 - **Off-chain monitoring (Blockaid, Phalcon)** detects and alerts, but responds in 30–60
   seconds and depends on trusting a third-party relayer.
 - **Manual multisig** responds in minutes to hours — irrelevant for an agent transacting
