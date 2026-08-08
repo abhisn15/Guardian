@@ -1,0 +1,16 @@
+{
+  "name": "guardian",
+  "version": "0.1.0",
+  "description": "GUARDIAN — on-chain adaptive permission & behavioural guard for AI agent treasuries on Monad",
+  "license": "MIT",
+  "scripts": {
+    "compile": "hardhat compile",
+    "deploy:monad": "hardhat run scripts/deploy.js --network monadTestnet",
+    "test": "hardhat test"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^17.4.2",
+    "hardhat": "^2.29.0"
+  }
+}

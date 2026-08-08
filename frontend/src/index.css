@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+/* Palet & tipografi mengikuti brand kit resmi Monad (monad.xyz/brand-and-media-kit).
+   Britti Sans (headline resmi) proprietary, jadi heading pakai Space Grotesk. */
+@theme {
+  --color-navy: #0e091c;
+  --color-panel: #160f2c;
+  --color-accent: #6e54ff;
+  --color-accent-soft: #ddd7fe;
+  --color-ok: #85e6ff;
+  --color-warn: #ffae45;
+  --color-danger: #ff5c8a;
+  --color-ink: #e4e1f5;
+  --color-ink-dim: #8a82ae;
+
+  --font-sans: "Inter", system-ui, sans-serif;
+  --font-head: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "Roboto Mono", ui-monospace, Consolas, monospace;
+}
+
+body {
+  @apply bg-navy text-ink font-sans antialiased m-0;
+  background-image: radial-gradient(circle at 12% -8%, rgb(110 84 255 / 0.18), transparent 46%);
+  min-height: 100svh;
+  text-rendering: optimizeLegibility;
+}

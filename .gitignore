@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.local
+cache/
+artifacts/
+typechain-types/
+/deployed.json
+# frontend/src/deployed.json SENGAJA di-commit: isinya cuma alamat contract
+# publik, dan frontend gagal build tanpanya.
+!frontend/src/deployed.json
+
+# frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
