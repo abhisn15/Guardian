@@ -148,11 +148,28 @@ export default function App() {
     let timer;
     let delay = POLL_MS;
 
+    let ticks = 0;
+
     const tick = async () => {
       if (!alive) return;
+
+      // A backgrounded tab still burns the same per-IP rate budget as a visible
+      // one. At an event where everyone leaves the page open, that is most of
+      // the traffic — and none of it is being looked at.
+      if (document.visibilityState === "hidden") {
+        timer = setTimeout(tick, POLL_MS);
+        return;
+      }
+
       try {
         setVault(formatEther(await treasury.balance()));
-        await Promise.all([refreshAgents(), refreshEvents()]);
+        // Agent state changes far less often than the event feed, so it does
+        // not need the same cadence. Reading it every third tick cuts roughly
+        // ten calls per cycle out of the budget.
+        const jobs = [refreshEvents()];
+        if (ticks % 3 === 0) jobs.push(refreshAgents());
+        ticks++;
+        await Promise.all(jobs);
         setRpcError(null);
         delay = POLL_MS; // healthy again
       } catch (e) {
@@ -169,10 +186,22 @@ export default function App() {
       if (alive) timer = setTimeout(tick, delay);
     };
 
+    // Come back promptly when the tab is looked at again, instead of waiting
+    // out whatever backoff was in effect while it was hidden.
+    const onVisible = () => {
+      if (document.visibilityState === "visible" && alive) {
+        clearTimeout(timer);
+        delay = POLL_MS;
+        tick();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     tick();
     return () => {
       alive = false;
       clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [refreshAgents, refreshEvents]);
 

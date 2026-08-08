@@ -1,5 +1,6 @@
 import { useState } from "react";
 import FlowStrip from "./FlowStrip";
+import BlockedStamp from "./BlockedStamp";
 
 // The transparency panel: what each agent actually received, actually produced,
 // and what the chain did about it. Raw model output is shown verbatim — a
@@ -138,23 +139,47 @@ function Verdict({ transcript }) {
   const wash = { alarm: "bg-alarm-wash", warn: "bg-warn-wash", pass: "bg-pass-wash" }[tone];
   const text = { alarm: "text-alarm", warn: "text-warn", pass: "text-pass" }[tone];
 
+  // The stamp only appears when the chain actually ruled on something. A verdict
+  // that never reached the contract has nothing to stamp.
+  const stamp = t.verdict
+    ? t.verdict.outcome === "EXECUTED"
+      ? t.injected && t.hijacked
+        ? "drained"
+        : null
+      : t.verdict.reason === "AGENT_FROZEN"
+        ? "frozen"
+        : "blocked"
+    : t.injected && !t.hijacked
+      ? "refused"
+      : null;
+
   return (
-    <div className={`px-4 py-3.5 border-b ${border} ${wash} trace-in`}>
-      <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-        <span className={`font-sans text-[14px] font-semibold tracking-[-0.01em] ${text}`}>
-          {headline}
-        </span>
-        <span className="font-mono text-[10.5px] text-muted tnum">
-          Treasury {Number(t.vaultBefore).toFixed(3)} → {Number(t.vaultAfter).toFixed(3)} MON
-        </span>
+    <div className={`px-4 py-4 border-b ${border} ${wash} trace-in`}>
+      <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
+        <div className="flex-1 min-w-[280px]">
+          <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
+            <span className={`font-sans text-[14px] font-semibold tracking-[-0.01em] ${text}`}>
+              {headline}
+            </span>
+            <span className="font-mono text-[10.5px] text-muted tnum">
+              Treasury {Number(t.vaultBefore).toFixed(3)} → {Number(t.vaultAfter).toFixed(3)} MON
+            </span>
+          </div>
+          <p className="text-[12px] text-muted m-0 mt-1 leading-relaxed max-w-[64ch]">{sub}</p>
+          {t.verdict?.reason && (
+            <p className="font-mono text-[10.5px] text-faint m-0 mt-1.5">
+              <span className={text}>{t.verdict.reason}</span>
+              {REASON_TEXT[t.verdict.reason] && <span> — {REASON_TEXT[t.verdict.reason]}</span>}
+            </p>
+          )}
+        </div>
+
+        {stamp && (
+          <div className="shrink-0">
+            <BlockedStamp variant={stamp} size={112} />
+          </div>
+        )}
       </div>
-      <p className="text-[12px] text-muted m-0 mt-1 leading-relaxed max-w-[64ch]">{sub}</p>
-      {t.verdict?.reason && (
-        <p className="font-mono text-[10.5px] text-faint m-0 mt-1.5">
-          <span className={text}>{t.verdict.reason}</span>
-          {REASON_TEXT[t.verdict.reason] && <span> — {REASON_TEXT[t.verdict.reason]}</span>}
-        </p>
-      )}
     </div>
   );
 }
