@@ -150,23 +150,36 @@ export default function App() {
 
   // ---------- agent API ----------
 
+  // Re-probe rather than deciding once. A single failed check used to latch the
+  // controls off until a reload — which, mid-demo, means the buttons are dead
+  // exactly when they matter.
   useEffect(() => {
-    api
-      .health()
-      .then(() => {
+    let alive = true;
+
+    const probe = async () => {
+      try {
+        await api.health();
+        if (!alive) return;
         setApiUp(true);
-        api
-          .lastTranscript()
-          .then((r) => r.transcript && setTranscript(r.transcript))
-          .catch(() => {});
-      })
-      .catch(() => {
-        // Deployed build with no agent API reachable. Show a real recorded run
-        // rather than an empty panel — clearly labelled as recorded, because
-        // passing it off as live would be the one thing this project cannot do.
+        const r = await api.lastTranscript().catch(() => null);
+        // Never let a stored transcript overwrite a live one the user just ran.
+        if (alive && r?.transcript) setTranscript((cur) => (cur?.recorded || !cur ? r.transcript : cur));
+      } catch {
+        if (!alive) return;
         setApiUp(false);
-        setTranscript({ ...sampleTranscript, recorded: true });
-      });
+        // No agent API reachable: show a real recorded run rather than an empty
+        // panel — labelled as recorded, because passing a replay off as live is
+        // the one thing a project about verifiable behaviour cannot do.
+        setTranscript((cur) => cur ?? { ...sampleTranscript, recorded: true });
+      }
+    };
+
+    probe();
+    const id = setInterval(probe, 15000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+    };
   }, []);
 
   const run = async (inject) => {
@@ -236,7 +249,7 @@ export default function App() {
 
           <button
             onClick={() => run(false)}
-            disabled={busy || apiUp === false}
+            disabled={busy}
             className="font-mono text-[11px] uppercase tracking-wide px-3.5 py-2 border border-ink bg-ink text-ground hover:bg-probe hover:border-probe disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             {busy ? "Running…" : "Run Decision Cycle"}
@@ -244,16 +257,16 @@ export default function App() {
 
           <button
             onClick={() => run(true)}
-            disabled={busy || apiUp === false}
+            disabled={busy}
             className="font-mono text-[11px] uppercase tracking-wide px-3.5 py-2 border border-alarm text-alarm bg-surface hover:bg-alarm-wash disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             Inject Test Payload
           </button>
 
-          {apiUp === false && (
+          {apiUp === false && !busy && (
             <span className="font-mono text-[10.5px] text-warn">
-              Showing a recorded run. The agents hold private keys, so they run locally —{" "}
-              <code className="bg-warn-wash px-1">npm run server</code> to drive them live.
+              Agent API unreachable — showing a recorded run. Press a button to retry;{" "}
+              <code className="bg-warn-wash px-1">npm run server</code> starts it locally.
             </span>
           )}
           {notice && <span className="font-mono text-[11px] text-alarm">{notice}</span>}
